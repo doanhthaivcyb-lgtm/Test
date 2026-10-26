@@ -1,0 +1,121 @@
+; DCA_XAUUSD_v3 - Cau hinh KHONG GIOI HAN SO LENH (nhom cuoi 1000 lenh, 2026-10-26)
+; Luu y: chi bo gioi han SO LENH, van giu chan lot va margin cua v3 - xem ghi chu trong chat
+; Dung kem DCA_XAUUSD_v2.mq5, KHONG dung cho v1 (v1 khong co cac input survival)
+; Dua tren bao cao ReportTester-374904993.xlsx thang 01/2026 (lo -86.972 USD, stop-out 28/01/2026)
+; Load in MT5 Strategy Tester > Inputs > Load
+; LUU Y: day la cau hinh DE TEST, khong phai bao dam co loi. Diem khac biet lon nhat so voi ban test cu:
+; - Them stop cung: StopLoss 10% / 10.000 USD (ban cu de 0, khong co cat lo that)
+; - Giam tong lot toi da moi chieu tu ~61 lot xuong ~1,38 lot
+; - Hedge giam tu toi da 1,5 lot / 50 lenh xuong 0,2 lot / 5 lenh
+; - Giu InpPipSize=1 nhu ban test cu (khong ve 0,1 cua ban repo): voi 0,1, khoang cach DCA chi 0,3-0,6 USD, bot se nhoi lenh qua nhanh
+; - Cac input TP theo nhom (InpG*_TP, InpHedgeTP) trong code v1 khong duoc dung de dat TP lenh, nen doi chung khong lam bot an toan hon
+sep_general======
+InpCheDoChay=0
+InpTimeframe=1
+InpMaxLot=0.2
+InpMaxSpread=200
+InpMagicNumber=1112
+InpCheDoLot=0
+InpCheDoTia=true
+InpPipSize=1
+InpSlippage=30
+sep_protect======
+InpStopProfitPct=0.0
+InpStopProfitUSD=0.0
+InpStopLossPct=0.0
+InpStopLossUSD=0.0
+sep_trim======
+InpTrimActivate=5
+InpTrimFirst=2
+InpTrimKeep=3
+InpTrimMinPips=4.0
+sep_money======
+InpAutoLot=false
+InpAutoLotPct=0.3
+InpCloseAll=true
+InpTPTotal=50.0
+InpTPOvernight=50.0
+sep_trail======
+InpTrailStart=12.0
+InpTrailProtect=7.0
+InpTrailStep=1.0
+sep_g1======
+InpG1_MaxOrders=5
+InpG1_StartLot=0.01
+InpG1_Spacing=2.0
+InpG1_TP=5.0
+InpG1_Multiply=1.5
+InpG1_Addition=0.01
+sep_g2======
+InpG2_MaxOrders=10
+InpG2_StartLot=0.02
+InpG2_Spacing=3.0
+InpG2_TP=5.0
+InpG2_Multiply=1.5
+InpG2_Addition=0.01
+InpG2_Gap=5.0
+sep_g3======
+InpG3_MaxOrders=5
+InpG3_StartLot=0.05
+InpG3_Spacing=4.0
+InpG3_TP=5.0
+InpG3_Multiply=1.2
+InpG3_Addition=0.01
+InpG3_Gap=7.0
+sep_g4======
+InpG4_MaxOrders=5
+InpG4_StartLot=0.05
+InpG4_Spacing=5.0
+InpG4_TP=15.0
+InpG4_Multiply=1.2
+InpG4_Addition=0.0
+InpG4_Gap=9.0
+sep_g5======
+InpG5_MaxOrders=1000
+InpG5_StartLot=0.01
+InpG5_Spacing=6.0
+InpG5_TP=5.0
+InpG5_Multiply=1.2
+InpG5_Addition=0.0
+InpG5_Gap=11.0
+sep_hedge======
+InpHedgeEnable=true
+InpHedgeActivate=5
+InpHedgeLotPct=30.0
+InpHedgeStartLot=0.01
+InpHedgeAddition=0.01
+InpHedgeMaxOrders=1000
+InpHedgeSpacing=5.0
+InpHedgeTP=5.0
+InpHedgeTrim=true
+InpHedgeMaxLot=0.2
+sep_nfp======
+InpStopNFP=true
+sep_survival======
+InpMaxTotalLot=3.0
+InpMaxTotalLotPerDirection=1.5
+InpMinMarginLevelNewOrder=200.0
+InpBlockNewChainMarginLevel=300.0
+InpEmergencyTrimMarginLevel=150.0
+InpTrimMinNetProfit=1.0
+InpSurvivalMarginLevel=80.0
+InpSurvivalEquityDDPct=70.0
+sep_hedgegroup======
+InpHedgeGroupEnable=true
+InpHedgeGroupMaxTotalLot=1.0
+InpHedgeGroupTP=100.0
+InpHedgeGroupActivateDistance=20.0
+InpHG1_MaxOrders=5
+InpHG1_StartLot=0.02
+InpHG1_Spacing=5.0
+InpHG1_Addition=0.01
+InpHG2_MaxOrders=5
+InpHG2_StartLot=0.05
+InpHG2_Spacing=5.0
+InpHG2_Addition=0.01
+InpHG2_Gap=5.0
+InpHG3_MaxOrders=1000
+InpHG3_StartLot=0.10
+InpHG3_Spacing=6.0
+InpHG3_Addition=0.01
+InpHG3_Gap=7.0
