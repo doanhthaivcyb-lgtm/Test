@@ -1,6 +1,6 @@
 ; DCA_XAUUSD_v3 - Cau hinh KHONG GIOI HAN SO LENH (nhom cuoi 1000 lenh, 2026-10-26)
 ; Luu y: chi bo gioi han SO LENH, van giu chan lot va margin cua v3 - xem ghi chu trong chat
-; Dung kem DCA_XAUUSD_v2.mq5, KHONG dung cho v1 (v1 khong co cac input survival)
+; Dung kem DCA_XAUUSD_v3.mq5, KHONG dung cho v1/v2
 ; Dua tren bao cao ReportTester-374904993.xlsx thang 01/2026 (lo -86.972 USD, stop-out 28/01/2026)
 ; Load in MT5 Strategy Tester > Inputs > Load
 ; LUU Y: day la cau hinh DE TEST, khong phai bao dam co loi. Diem khac biet lon nhat so voi ban test cu:
