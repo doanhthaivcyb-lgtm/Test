@@ -6,8 +6,8 @@
 //|   Chong chay truoc stop-out cua san (khong cat lo som 10%)            |
 //+------------------------------------------------------------------+
 #property copyright "DCA XAUUSD Bot v5.0"
-#property version   "5.00"
-#property description "Bot DCA + Hedge DCA Duong, v5 theo chot thao luan 2026-10-27: am chinh duong cuu, tia lai moi lenh, dao GH thanh am rieng, trailing uu tien, DDmax"
+#property version   "5.01"
+#property description "Bot DCA + Hedge DCA Duong, v5.01 fix vao lenh: DCA + hedge cu chay moi tick, khong cho nen dong"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -254,6 +254,7 @@ bool           g_flipBuyActive = false; // GH BUY da dao thanh am rieng chua
 bool           g_flipSellActive = false; // GH SELL da dao thanh am rieng chua
 double         g_maxDDPct = 0.0;      // DDmax tu dinh equity (%, v5 8.4)
 double         g_maxDDUSD = 0.0;      // DDmax tu dinh equity ($, v5 8.4)
+string         g_entryBlockReason = ""; // v5.01: Ly do DCA/hedge cu bi chan o tick hien tai (rong = khong bi chan)
 datetime       g_lastBarTime;      // Thoi gian nen cuoi
 bool           g_botStopped;       // Bot da dung
 double         g_trailHighProfit;  // Lai cao nhat (cho trailing)
@@ -299,7 +300,7 @@ int OnInit()
    g_startBalance = AccountInfoDouble(ACCOUNT_BALANCE);
    g_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    
-   Print("===== DCA XAUUSD Bot v5.0 STARTED =====");
+   Print("===== DCA XAUUSD Bot v5.01 STARTED =====");
    Print("Survival: MaxTotalLot=", DoubleToString(InpMaxTotalLot, 2),
          " | PerDirection=", DoubleToString(InpMaxTotalLotPerDirection, 2),
          " | MinMarginNewOrder=", DoubleToString(InpMinMarginLevelNewOrder, 1),
@@ -319,7 +320,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    Comment("");
-   Print("===== DCA XAUUSD Bot v5.0 STOPPED =====");
+   Print("===== DCA XAUUSD Bot v5.01 STOPPED =====");
 }
 
 //+------------------------------------------------------------------+
@@ -570,40 +571,41 @@ void OnTick()
       ProcessFlipChain(POSITION_TYPE_SELL);
    }
 
-   // === XU LY KHI NEN DONG ===
-   if(!IsNewCandle()) return;
-   
-   // 4. Kiem tra NFP
+   // 4. v5.01 FIX VAO LENH: DCA + hedge cu chay MOI TICK, khong cho nen dong.
+   //    Ly do cu: DCA chi chay khi IsNewCandle() tra ve true, ma ham do cap nhat
+   //    g_lastBarTime ngay o tick dau tien cua nen moi. Neu tick do bi spread cao
+   //    hoac NFP chan thi OnTick return, cac tick sau trong cung nen do se thay
+   //    IsNewCandle() = false, nen ca nen do mat co hoi vao lenh, du spread sau do
+   //    da giam. Neu gia spike trong nen roi rut lai truoc khi nen dong thi DCA
+   //    cung khong bao gio thay du spacing, trong khi GH chay moi tick van vao duoc.
+   //    Day la ly do GH van vao ma DCA/hedge cu khong vao, va HG = 0 trong bao cao test_v5.
+   //    Spacing van chan mo nhieu lenh lien tiep: sau khi mo 1 lenh, khoang cach tu
+   //    gia lenh moi ve 0, phai chay them du spacing moi mo lenh tiep, du chay moi tick.
    if(InpStopNFP && IsNFPTime())
    {
-      UpdateDisplay("DANG DUNG - NFP");
-      return;
+      g_entryBlockReason = "NFP";
    }
-   
-   // 5. Kiem tra spread
-   if(g_symInfo.Spread() > InpMaxSpread)
+   else if(g_symInfo.Spread() > InpMaxSpread)
    {
-      UpdateDisplay("CHO - Spread cao: " + IntegerToString(g_symInfo.Spread()));
-      return;
+      g_entryBlockReason = "SPREAD " + IntegerToString(g_symInfo.Spread());
    }
-   
-   // 6. Xu ly DCA cho chuoi BUY
-   if(InpCheDoChay == MODE_BUY_SELL || InpCheDoChay == MODE_BUY_ONLY)
-      ProcessDCAChain(POSITION_TYPE_BUY);
-   
-   // 7. Xu ly DCA cho chuoi SELL
-   if(InpCheDoChay == MODE_BUY_SELL || InpCheDoChay == MODE_SELL_ONLY)
-      ProcessDCAChain(POSITION_TYPE_SELL);
-   
-   // 8. Xu ly Hedge
-   if(InpHedgeEnable)
+   else
    {
-      ProcessHedge(POSITION_TYPE_BUY);  // Hedge cho chuoi BUY (mo SELL)
-      ProcessHedge(POSITION_TYPE_SELL); // Hedge cho chuoi SELL (mo BUY)
+      g_entryBlockReason = "";
+      // 6. Xu ly DCA cho chuoi BUY
+      if(InpCheDoChay == MODE_BUY_SELL || InpCheDoChay == MODE_BUY_ONLY)
+         ProcessDCAChain(POSITION_TYPE_BUY);
+      // 7. Xu ly DCA cho chuoi SELL
+      if(InpCheDoChay == MODE_BUY_SELL || InpCheDoChay == MODE_SELL_ONLY)
+         ProcessDCAChain(POSITION_TYPE_SELL);
+      // 8. Xu ly Hedge cu (cung bi loi nen dong nhu DCA truoc day)
+      if(InpHedgeEnable)
+      {
+         ProcessHedge(POSITION_TYPE_BUY);  // Hedge cho chuoi BUY (mo SELL)
+         ProcessHedge(POSITION_TYPE_SELL); // Hedge cho chuoi SELL (mo BUY)
+      }
    }
-   
-   // 9. Tia lenh da chay moi tick o muc 3b/3c (v2), khong lap lai o day.
-   
+
    // 10. Cap nhat hien thi
    UpdateDisplay("DANG CHAY");
 }
@@ -740,6 +742,8 @@ void OpenFirstOrder(ENUM_POSITION_TYPE chainType)
 //+------------------------------------------------------------------+
 bool OpenDCAOrder(ENUM_POSITION_TYPE type, double lot, int group, int orderIdx)
 {
+   // v5.01: Chan spread o tung lenh, khong phai o tung nen, de spread giam la vao duoc ngay tick sau.
+   if(g_symInfo.Spread() > InpMaxSpread) return false;
    // Chuan hoa lot
    lot = NormalizeLot(lot);
    if(lot <= 0) return false;
@@ -2370,7 +2374,7 @@ void UpdateDisplay(string status)
    
    string text = "";
    text += "══════════════════════════════════\n";
-   text += "   DCA XAUUSD Bot v5.0\n";
+   text += "   DCA XAUUSD Bot v5.01 - DCA MOI TICK\n";
    text += "══════════════════════════════════\n";
    text += "Trang thai: " + status + "\n";
    text += "Mode: " + EnumToString(InpCheDoChay) + "\n";
@@ -2453,6 +2457,8 @@ void UpdateDisplay(string status)
       text += "Chot chan cuoi: " + IntegerToString(g_survivalTriggerCount) + " lan\n";
    }
    text += "Spread: " + IntegerToString(g_symInfo.Spread()) + " points\n";
+   if(g_entryBlockReason != "")
+      text += "VAO LENH BI CHAN: " + g_entryBlockReason + "\n";
    text += "Time: " + TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES) + "\n";
    
    Comment(text);
